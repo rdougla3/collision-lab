@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Collect robot trajectories, train a collision predictor, and test it in an editable arena.">
+<title>Collision Lab · Train and test</title><link rel="stylesheet" href="/style.css">
+</head>
+<body><main>
+<header class="app-header"><div class="brand"><h1>Collision Lab<span> / </span></h1><p>Learn to find a way through.</p></div><nav class="mode-tabs" aria-label="Experiment mode"><button id="mode-train" class="primary" aria-pressed="true">Train</button><button id="mode-test" aria-pressed="false">Test</button></nav></header>
+<div class="layout">
+<section class="arena" aria-label="Robot simulation">
+  <div class="viewport-toolbar">
+    <div class="control-group playback-group"><span class="group-label">Playback</span>
+      <div class="playback" role="group" aria-label="Simulation playback">
+        <button id="play" class="primary">Run</button>
+        <button id="step" class="icon-button" aria-label="Advance one physics step" title="Step"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 10 7-10 7Z"/><path d="M19 5v14"/></svg></button>
+        <button id="restart" class="icon-button" aria-label="Restart simulation" title="Restart simulation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/></svg></button>
+        <div class="speed-control"><label for="speed">Speed <output id="speed-value">1×</output></label><input id="speed" type="range" min="1" max="20" value="1"></div>
+      </div>
+    </div>
+    <div class="control-group layout-group"><span class="group-label">Arena layout</span>
+      <div class="arena-tools" role="group" aria-label="Edit arena">
+        <button id="edit-select" class="primary" aria-pressed="true" title="Select and move obstacles or the goal">Select</button>
+        <button id="add-wall" aria-pressed="false" title="Add wall">+ Wall</button><button id="add-post" aria-pressed="false" title="Add round obstacle">+ Post</button>
+        <button id="delete-obstacle" class="icon-button" aria-label="Remove selected obstacle" title="Remove selected obstacle" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7M14 10v7"/></svg></button>
+        <details class="layout-menu"><summary aria-label="More layout options" title="More layout options">⋯</summary><div class="layout-popover"><button id="reset-layout">Reset layout</button><p class="hint">Drag to move. Select an obstacle to reveal resize handles. Editing pauses the simulation.</p></div></details>
+      </div>
+    </div>
+  </div>
+  <div class="canvas-stage"><canvas tabindex="0" id="world" width="1080" height="900" aria-label="Editable robot arena. Select and drag obstacles or the goal; obstacle handles resize them.">Your browser needs Canvas support to display this simulation.</canvas><p id="editor-hint" class="editor-hint" role="status" hidden></p></div>
+  <div class="viewport-footer">
+    <div class="status-heading"><span><i></i><span id="arena-mode">RANDOM WALK</span><span id="run-status">Paused</span></span><details class="observation-details"><summary>Details</summary><div class="observation-popover"><dl><div><dt>Episode</dt><dd id="episode">—</dd></div><div><dt>Goal timeouts</dt><dd id="timeouts">0</dd></div></dl></div></details></div>
+    <dl class="live-stats" aria-label="Live observation"><div><dt>Time</dt><dd id="time">—</dd></div><div><dt>Steering</dt><dd id="action">—</dd></div><div><dt>Collisions</dt><dd id="collisions">0</dd></div><div class="test-stat" hidden><dt>Goals reached</dt><dd id="goals">0</dd></div><div class="train-stat"><dt>Episodes done</dt><dd id="completed">0</dd></div></dl>
+    <div class="readings-legend"><div class="sensor-row"><span>Rays · L → R</span><div id="sensors" class="sensors" aria-label="Distance sensor readings from left to right"></div></div><div class="legend" aria-label="Arena legend"><span><b class="sensor-key"></b>Sensors</span><span><b class="velocity-key"></b>Velocity</span><span><b class="control-key"></b>Force</span></div></div>
+    <p id="error" role="alert"></p>
+  </div>
+</section>
+<aside class="workspace" aria-label="Experiment controls">
+  <p id="mode-description" class="hint">Collect a walk, balance the data, then train a network.</p>
+  <section id="train-tools" class="workflow" aria-label="Training workflow">
+    <nav class="workflow-tabs" aria-label="Training stage"><button id="stage-collect" class="active" aria-pressed="true" aria-controls="collect-panel">1 Collect</button><button id="stage-dataset" aria-pressed="false" aria-controls="dataset-panel">2 Dataset</button><button id="stage-network" aria-pressed="false" aria-controls="network-panel">3 Network</button></nav>
+    <section id="collect-panel" class="panel stage-panel"><h2>Collect a dataset</h2><p class="hint lead">A random walk through your arena, saved as action sequences.</p>
+      <div class="field-pair"><div><label for="collect-episodes">Episodes</label><input id="collect-episodes" type="number" min="10" max="100000" value="1000"></div><div><label for="collect-actions">Actions per episode</label><input id="collect-actions" type="number" min="1" max="1000" value="50"></div></div>
+      <button id="collect-data" class="primary job-start">Collect dataset</button><p class="hint">One decision every 0.1 s. Each label predicts collision over the next 1 s of holding that force.</p>
+      <div class="context-note"><strong>Preview &amp; collection</strong><p class="hint">Run explores the arena live. Collect dataset runs a separate walk on the server using this layout.</p></div>
+    </section>
+    <section id="dataset-panel" class="panel stage-panel" hidden><h2>Select &amp; balance</h2><label for="dataset">Dataset</label><select id="dataset"><option value="">No datasets yet</option></select><p id="dataset-summary" class="hint">Collect a run with at least 10 episodes.</p><div class="library-buttons"><button id="use-layout" disabled>Use layout</button><button id="delete-dataset" disabled>Delete local dataset</button></div>
+      <label for="balance-fraction">Desired collision fraction</label><div class="inline-field"><input id="balance-fraction" type="number" min="0.01" max="1" step="0.01" value="0.5"><button id="balance-data" class="job-start">Balance</button></div><label for="balance-plan">Training targets</label><select id="balance-plan"><option value="">All training examples</option></select><p class="hint">Undersamples safe targets while preserving sequence history. Validation and test sets stay untouched.</p><button id="continue-network" class="primary">Configure network →</button>
+    </section>
+    <section id="network-panel" class="panel stage-panel" hidden><h2>Train a network</h2><p id="training-source" class="hint lead">Choose a dataset in step 2.</p>
+      <div class="field-pair"><div><label for="network-kind">Architecture</label><select id="network-kind"><option value="feedforward">Feedforward</option><option value="rnn">RNN (tanh)</option><option value="gru">GRU</option></select></div><div><label for="hidden-widths">Hidden widths</label><input id="hidden-widths" value="32,16" aria-describedby="dimension-help"></div></div><p id="dimension-help" class="hint">Comma-separated layer widths.</p>
+      <div id="recurrent-settings" class="field-pair" hidden><div><label for="recurrent-layers">Recurrent layers</label><input id="recurrent-layers" type="number" min="1" max="4" value="1"></div><div><label for="history-length">History length</label><input id="history-length" type="number" min="1" max="256" value="8"></div></div>
+      <div class="field-pair"><div><label for="epochs">Epochs</label><input id="epochs" type="number" min="1" max="1000" value="30"></div><div><label for="batch-size">Batch size</label><input id="batch-size" type="number" min="1" max="4096" value="64"></div></div><label for="learning-rate">Learning rate</label><input id="learning-rate" type="number" min="0.000001" step="0.0001" value="0.001">
+      <details><summary>More training settings</summary><label for="optimizer">Optimizer</label><select id="optimizer"><option value="adam">Adam</option><option value="sgd">SGD</option></select><label for="patience">Early-stopping patience</label><input id="patience" type="number" min="1" value="8"><label for="weight-decay">Weight decay</label><input id="weight-decay" type="number" min="0" step="0.0001" value="0"><label for="threshold">Collision threshold</label><input id="threshold" type="number" min="0.01" max="0.99" step="0.01" value="0.25"></details>
+      <button id="train-model" class="primary job-start">Train model</button><p class="hint">Keeps the checkpoint with the lowest validation loss.</p>
+    </section>
+  </section>
+  <section id="test-tools" class="workflow" aria-label="Testing workflow" hidden>
+    <section class="panel"><h2>Test a model</h2><label for="saved-model">Saved model</label><select id="saved-model"><option value="">No models yet</option></select><button id="load-model" class="primary">Load selected model</button><p id="model-summary" class="hint">Load a model, then Run. Drag the goal to move it.</p><details><summary>Model files &amp; evaluation</summary><label for="model-file">Open a model.json file</label><input id="model-file" type="file" accept=".json,application/json"><div class="library-buttons"><button id="export-model" disabled>Download model</button><button id="delete-model" disabled>Delete local model</button></div><p id="model-metrics" class="hint">Training and held-out metrics will appear here.</p></details></section>
+    <section class="panel scores-panel"><h2>Collision predictions <span>1 s horizon</span></h2><div id="action-scores" class="action-scores"></div><p id="decision-reason" class="hint">Scores appear when a model chooses an action.</p></section>
+  </section>
+  <section class="job-panel" aria-label="Job progress"><div class="job-heading"><h2 id="job-status" aria-live="polite">Ready</h2><button id="cancel-job" disabled>Cancel</button><button id="refresh-artifacts" title="Refresh datasets and models">Refresh</button></div><p id="workflow-error" role="alert"></p><details><summary>Job output</summary><pre id="job-log" tabindex="0" aria-label="Job output">Collection and training progress will appear here.</pre></details></section>
+  <details class="storage-note"><summary>Saved in this browser</summary><p class="hint">One shared example is available to everyone. Your collections, balance plans, models, and arena stay in this browser. Clearing site data removes them. Temporary server copies are deleted after saving locally.</p></details>
+</aside>
+</div></main><script type="module" src="/modules/browser.js"></script></body></html>

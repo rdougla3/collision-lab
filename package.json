@@ -1,0 +1,21 @@
+{
+  "name": "collision-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic browser and headless robot simulation with sequential training data.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && npm run example:restore && node --test test/*.test.js",
+    "collect": "npm run build && node dist/cli.js",
+    "dev": "npm run build && npm run example:restore && node dist/server.js",
+    "example:restore": "node scripts/restore-example.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.0",
+    "typescript": "~5.9.3"
+  }
+}

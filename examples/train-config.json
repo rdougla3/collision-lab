@@ -1,0 +1,11 @@
+{
+  "epochs": 30,
+  "batch_size": 64,
+  "learning_rate": 0.001,
+  "weight_decay": 0.0,
+  "sequence_length": 8,
+  "patience": 8,
+  "seed": 42,
+  "threshold": 0.25,
+  "optimizer": "adam"
+}
